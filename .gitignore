@@ -11,3 +11,6 @@ frontend/.env.local
 backend/data/*.json
 backend/data/*.tmp
 npm-debug.log*
+
+# Rust build artifacts
+contracts/target/

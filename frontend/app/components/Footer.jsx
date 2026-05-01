@@ -112,8 +112,8 @@ export default function Footer() {
               <span className="inline-block w-2 h-2 rounded-full bg-mint animate-pulse" />
               Stellar Testnet
             </span>
-            <span>Escrow: CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
-            <span>G2S Token: CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+            <span>Escrow: CB7WAQPDNZSKBXJYBKNGUC6RNEOCLXTSV2FU3B4SGCGPPMKW6YGUCRQW</span>
+            <span>G2S Token: CDIARUXKKITLLCZTTN3ELJF6YCCMYUJXDJB2AZAHLL2YOYNWHG6IFU4K</span>
           </div>
         </div>
       </div>

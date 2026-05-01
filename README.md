@@ -55,18 +55,19 @@
 
 | Contract | Address |
 |---|---|
-| Grow2Stellar Escrow | `CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` |
-| G2S Reward Token | `CXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` |
+| Grow2Stellar Escrow | `CB7WAQPDNZSKBXJYBKNGUC6RNEOCLXTSV2FU3B4SGCGPPMKW6YGUCRQW` |
+| G2S Reward Token | `CDIARUXKKITLLCZTTN3ELJF6YCCMYUJXDJB2AZAHLL2YOYNWHG6IFU4K` |
 
-> Replace with real addresses after deploying with `stellar contract deploy`.
-
-### Deployment Transaction Hash
+### Deployment Transaction Hashes
 
 | Operation | Transaction Hash |
 |---|---|
-| Escrow contract deploy | `txhash_placeholder_escrow` |
-| G2S token deploy | `txhash_placeholder_token` |
-| Escrow `init` call | `txhash_placeholder_init` |
+| Escrow WASM upload | [`254445237d04ce6dd03f1c7b649009060681f63097bbb079fb982c91e39758aa`](https://stellar.expert/explorer/testnet/tx/254445237d04ce6dd03f1c7b649009060681f63097bbb079fb982c91e39758aa) |
+| Escrow contract deploy | [`803540a38cbb24abd90408a1091071ba6a24a559de8f440c530f6fecc217fff4`](https://stellar.expert/explorer/testnet/tx/803540a38cbb24abd90408a1091071ba6a24a559de8f440c530f6fecc217fff4) |
+| G2S Token WASM upload | [`56f65e5987df76110d999c4f88d450067d359664c3e94b6ed11c930d0024f38c`](https://stellar.expert/explorer/testnet/tx/56f65e5987df76110d999c4f88d450067d359664c3e94b6ed11c930d0024f38c) |
+| G2S Token deploy | [`8483604beca3c512a4cf4fff8ad83fd8dcba1bcd3498ea0f6e36afa516c216f9`](https://stellar.expert/explorer/testnet/tx/8483604beca3c512a4cf4fff8ad83fd8dcba1bcd3498ea0f6e36afa516c216f9) |
+| G2S Token init | [`dac56734f2f8f96a23c578c4a9df628520045ea2bffa914ecf3f7cd27b5ad4c5`](https://stellar.expert/explorer/testnet/tx/dac56734f2f8f96a23c578c4a9df628520045ea2bffa914ecf3f7cd27b5ad4c5) |
+| Escrow init | [`b2efc0ba2466ade5dcb42badecaeb9b836e22faf0bb28f91e534409cc10e6a03`](https://stellar.expert/explorer/testnet/tx/b2efc0ba2466ade5dcb42badecaeb9b836e22faf0bb28f91e534409cc10e6a03) |
 
 ---
 

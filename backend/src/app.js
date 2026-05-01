@@ -16,7 +16,13 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: [env.clientOrigin, "http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+      origin: [
+        env.clientOrigin,
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "https://grow2stellar.vercel.app",
+      ],
       credentials: true,
     }),
   );

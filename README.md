@@ -25,86 +25,19 @@
 
 > Hero section with wallet connect card, stats bar, and how-it-works steps.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  G2S  Grow2Stellar    Marketplace  How it works  Docs               │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│   ● Live on Stellar Testnet                                         │
-│                                                                     │
-│   Earn XLM for          ┌──────────────────────────────────┐        │
-│   real growth           │  Connect your wallet             │        │
-│   work.                 │  ─────────────────────────────── │        │
-│                         │  Stellar Address                 │        │
-│   One identity.         │  ┌──────────────────────────┐   │        │
-│   Choose your path:     │  │ No wallet connected      │   │        │
-│   organizer or          │  └──────────────────────────┘   │        │
-│   ambassador.           │                                  │        │
-│                         │  ┌──────────────────────────┐   │        │
-│   [Browse Campaigns]    │  │  Connect Freighter Wallet │   │        │
-│   [View on GitHub]      │  └──────────────────────────┘   │        │
-│                         └──────────────────────────────────┘        │
-├─────────────────────────────────────────────────────────────────────┤
-│  12+ campaigns   340+ ambassadors   18,500 XLM   < 5s payout       │
-├─────────────────────────────────────────────────────────────────────┤
-│  01 Connect wallet  02 Pick campaign  03 Complete quests  04 Get paid│
-└─────────────────────────────────────────────────────────────────────┘
-```
+![Landing Page](docs/screenshots/landing-page.png)
 
 ### Mobile Responsive View
 
 > Sticky bottom navigation bar replaces the sidebar on mobile. Hamburger menu in header.
 
-```
-┌─────────────────────┐    ┌─────────────────────┐
-│ G2S  Grow2Stellar ☰ │    │ G2S  Grow2Stellar ☰ │
-├─────────────────────┤    ├─────────────────────┤
-│                     │    │ ✕ Close             │
-│  Earn XLM for       │    │ ─────────────────── │
-│  real growth work.  │    │ Marketplace         │
-│                     │    │ How it works        │
-│  ┌───────────────┐  │    │ Docs ↗              │
-│  │ Connect       │  │    │ ─────────────────── │
-│  │ Freighter     │  │    │ Connect Wallet      │
-│  └───────────────┘  │    └─────────────────────┘
-│                     │
-│  12+  340+  18,500  │    ┌─────────────────────┐
-│                     │    │  Ambassador Hub     │
-├─────────────────────┤    ├─────────────────────┤
-│ Dashboard│Campaigns │    │  Applied  Approved  │
-│ Submissions │ Exit  │    │    2        1       │
-└─────────────────────┘    │                     │
-  ↑ Mobile bottom nav      │  Active Links       │
-                           │  ┌───────────────┐  │
-                           │  │ Campaign A    │  │
-                           │  │ Clicks: 14    │  │
-                           │  └───────────────┘  │
-                           ├─────────────────────┤
-                           │ Dashboard│Campaigns │
-                           └─────────────────────┘
-```
+![Mobile Responsive](docs/screenshots/mobile-responsive.png)
 
-### Organizer Portal
+### CI/CD Pipeline
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│  G2S  Grow2Stellar    Marketplace  Docs    GCRU…OBYZ  Disconnect│
-├──────────────┬───────────────────────────────────────────────┤
-│              │  Organizer Hub                                │
-│  Organizer   │  Manage campaigns, review submissions         │
-│  Panel       │                                               │
-│  ─────────── │  🚀 Campaigns  🌍 Public  🔒 Private  ⭐ Budget│
-│  Dashboard   │      3            2          1         500 XLM│
-│  Campaigns   │                                               │
-│  Quests &    │  Recent Campaigns                  View all → │
-│  Approvals   │  ┌──────────────┐  ┌──────────────┐          │
-│              │  │ Campaign A   │  │ Campaign B   │          │
-│              │  │ 🌍 Public    │  │ 🔒 Private   │          │
-│  ─────────── │  │ 200 XLM     │  │ 300 XLM     │          │
-│  Disconnect  │  │ View Details │  │ View Details │          │
-│              │  └──────────────┘  └──────────────┘          │
-└──────────────┴───────────────────────────────────────────────┘
-```
+> GitHub Actions runs contract build, backend smoke tests, and frontend build on every push to `main`.
+
+![CI/CD Pipeline](docs/screenshots/ci-cd-pipeline.png)
 
 ---
 

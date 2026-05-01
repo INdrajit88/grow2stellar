@@ -2,30 +2,35 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getCampaignByInviteCode, joinCampaignByInvite } from "../../../lib/api";
-import { connectFreighterWallet, getFreighterNetwork, signChallengeTransaction } from "../../../lib/freighter";
+import {
+  getCampaignByInviteCode,
+  joinCampaignByInvite,
+} from "../../../lib/api";
+import {
+  connectFreighterWallet,
+  getFreighterNetwork,
+  signChallengeTransaction,
+} from "../../../lib/freighter";
+import Link from "next/link";
 
 export default function JoinCampaignPage() {
-  const params = useParams();
+  const { inviteCode } = useParams();
   const router = useRouter();
-  const { inviteCode } = params;
 
   const [campaign, setCampaign] = useState(null);
   const [error, setError] = useState("");
-  const [status, setStatus] = useState("loading"); // loading | ready | authenticating | joining | success
+  const [status, setStatus] = useState("loading");
 
-  useEffect(() => {
-    loadInvite();
-  }, [inviteCode]);
+  useEffect(() => { loadInvite(); }, [inviteCode]);
 
   async function loadInvite() {
     try {
       const { campaign: data } = await getCampaignByInviteCode(null, inviteCode);
       setCampaign(data);
       setStatus("ready");
-    } catch(err) {
-       setError(err.message || "Invalid or expired invite link.");
-       setStatus("error");
+    } catch (err) {
+      setError(err.message || "Invalid or expired invite link.");
+      setStatus("error");
     }
   }
 
@@ -33,104 +38,140 @@ export default function JoinCampaignPage() {
     try {
       setStatus("authenticating");
       let token = window.localStorage.getItem("grow2stellar.token");
-      
-      // If the user isn't logged in, instantly run Freighter Auth flow inline!
+
       if (!token) {
-        const networkDetails = await getFreighterNetwork();
-        if (!networkDetails || !networkDetails.network.toUpperCase().includes("TESTNET")) throw new Error("Please switch Freighter to TESTNET.");
-        
+        const net = await getFreighterNetwork();
+        if (!net?.network?.toUpperCase().includes("TESTNET"))
+          throw new Error("Switch Freighter to Stellar Testnet first.");
+
         const address = await connectFreighterWallet();
-        
-        const res1 = await fetch("http://localhost:4000/api/auth/nonce", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+
+        const r1 = await fetch("http://localhost:4000/api/auth/nonce", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ walletAddress: address }),
         });
-        const data1 = await res1.json();
-        if (!res1.ok) throw new Error(data1.error?.message || "Failed to fetch nonce");
-        
-        const signedTransaction = await signChallengeTransaction({
-          transaction: data1.transaction,
+        const d1 = await r1.json();
+        if (!r1.ok) throw new Error(d1.error?.message || "Failed to fetch nonce");
+
+        const signed = await signChallengeTransaction({
+          transaction: d1.transaction,
           address,
-          networkPassphrase: networkDetails.networkPassphrase,
+          networkPassphrase: net.networkPassphrase,
         });
 
-        const res2 = await fetch("http://localhost:4000/api/auth/verify", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ signedTransaction, walletAddress: address }),
+        const r2 = await fetch("http://localhost:4000/api/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ signedTransaction: signed, walletAddress: address }),
         });
-        const data2 = await res2.json();
-        if (!res2.ok) throw new Error(data2.error?.message || "Verification failed");
+        const d2 = await r2.json();
+        if (!r2.ok) throw new Error(d2.error?.message || "Verification failed");
 
-        token = data2.token;
+        token = d2.token;
         window.localStorage.setItem("grow2stellar.token", token);
       }
 
       setStatus("joining");
       await joinCampaignByInvite(token, inviteCode);
       setStatus("success");
-      
-      setTimeout(() => {
-         router.push("/ambassador/campaigns");
-      }, 1500);
-
+      setTimeout(() => router.push("/ambassador/campaigns"), 1800);
     } catch (err) {
-      console.error(err);
-      setError(err.message || "Failed to join private campaign.");
-      setStatus("ready"); // revert
+      setError(err.message || "Failed to join campaign.");
+      setStatus("ready");
     }
   }
 
-  if (status === "loading") return <div className="min-h-screen flex items-center justify-center bg-cloud"><p className="animate-pulse font-bold text-ink/60">Loading Secure Invite...</p></div>;
-
-  if (status === "error") return (
-    <div className="min-h-screen flex items-center justify-center bg-cloud">
-      <div className="bg-white p-8 rounded-xl border border-coral/20 max-w-md text-center shadow-sm">
-        <h1 className="text-xl font-bold text-coral mb-2">Invite Failed</h1>
-        <p className="text-ink/70">{error}</p>
-        <button onClick={() => router.push('/')} className="mt-6 bg-ink text-white px-4 py-2 rounded text-sm hover:bg-mint transition">Go Home</button>
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cloud">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 rounded-full border-2 border-mint border-t-transparent animate-spin" />
+          <p className="text-sm text-ink/50 font-medium">Loading invite…</p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cloud p-4">
+        <div className="w-full max-w-sm rounded-2xl border border-coral/20 bg-white p-8 text-center shadow-lg">
+          <div className="text-3xl mb-3">⚠️</div>
+          <h1 className="text-lg font-bold text-ink mb-2">Invite not found</h1>
+          <p className="text-sm text-ink/55 mb-6">{error}</p>
+          <Link
+            href="/"
+            className="inline-block rounded-lg bg-ink text-white text-sm font-semibold px-5 py-2.5 hover:bg-mint transition"
+          >
+            Go home
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main className="min-h-screen bg-cloud flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-ink/10 overflow-hidden">
-        <div className="bg-ink p-8 text-white text-center">
-           <span className="inline-block bg-mint/20 text-mint px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-4">Exclusive Invite</span>
-           <h1 className="text-2xl font-bold mb-2">You have been invited!</h1>
-           <p className="text-white/70">Join as an Ambassador to earn XLM.</p>
+    <main className="min-h-screen bg-cloud flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-2xl border border-ink/10 bg-white shadow-xl overflow-hidden">
+        {/* Top banner */}
+        <div className="bg-ink px-8 py-8 text-center">
+          <span className="inline-block rounded-full bg-mint/20 text-mint text-xs font-bold uppercase tracking-widest px-3 py-1 mb-4">
+            Private Invite
+          </span>
+          <h1 className="text-xl font-bold text-white mb-1">You've been invited</h1>
+          <p className="text-white/50 text-sm">
+            Join as an ambassador and earn XLM.
+          </p>
         </div>
-        
-        <div className="p-8">
-           <div className="mb-6">
-              <h2 className="text-xl font-bold text-ink">{campaign?.title}</h2>
-              <div className="flex gap-2 mt-2">
-                 <span className="text-xs bg-gold/10 text-gold font-bold px-2 py-1 rounded">Budget: {campaign?.totalBudget} XLM</span>
-                 <span className="text-xs bg-cloud text-ink/70 font-bold px-2 py-1 rounded border">Private Access</span>
-              </div>
-           </div>
 
-           <p className="text-sm text-ink/70 mb-8 p-4 bg-cloud border border-ink/5 rounded-lg italic">
-             "{campaign?.description}"
-           </p>
+        <div className="p-6 sm:p-8">
+          {/* Campaign info */}
+          <div className="rounded-xl border border-ink/8 bg-cloud p-4 mb-6">
+            <h2 className="font-bold text-ink mb-2">{campaign?.title}</h2>
+            <p className="text-sm text-ink/55 leading-relaxed mb-3">
+              {campaign?.description}
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <span className="text-xs font-bold bg-gold/10 text-gold px-2 py-1 rounded-md">
+                Budget: {campaign?.totalBudget} XLM
+              </span>
+              <span className="text-xs font-bold bg-cloud text-ink/50 px-2 py-1 rounded-md border border-ink/8">
+                Private Access
+              </span>
+            </div>
+          </div>
 
-           {error && <p className="text-sm text-coral mb-4 text-center font-semibold bg-coral/10 py-2 rounded">{error}</p>}
+          {error && (
+            <div className="rounded-lg bg-coral/8 border border-coral/20 text-coral text-sm font-semibold px-4 py-2.5 mb-4 text-center">
+              {error}
+            </div>
+          )}
 
-           {status === "success" ? (
-             <button className="w-full bg-mint text-white font-bold py-3 rounded text-lg flex justify-center items-center gap-2">
-               <span>✓ Successfully Joined</span>
-             </button>
-           ) : (
-             <button 
-               onClick={handleAccept} 
-               disabled={status !== "ready"}
-               className="w-full bg-ink text-white font-bold py-3 rounded text-lg hover:bg-mint transition disabled:bg-ink/50"
-             >
-               {status === "authenticating" ? "Awaiting Wallet Signature..." : status === "joining" ? "Accepting Invite..." : "Connect Wallet to Accept"}
-             </button>
-           )}
-           
-           <p className="text-center text-xs text-ink/40 mt-4">By accepting, you bypass the public application process and instantly become an approved Ambassador for this campaign.</p>
+          {status === "success" ? (
+            <div className="rounded-lg bg-mint/10 border border-mint/20 text-mint text-sm font-bold px-4 py-3 text-center flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+              Joined! Redirecting to your hub…
+            </div>
+          ) : (
+            <button
+              onClick={handleAccept}
+              disabled={status !== "ready"}
+              className="w-full rounded-lg bg-ink text-white font-semibold py-3 text-sm hover:bg-mint transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {status === "authenticating"
+                ? "Awaiting wallet signature…"
+                : status === "joining"
+                ? "Accepting invite…"
+                : "Connect Wallet & Accept Invite"}
+            </button>
+          )}
+
+          <p className="text-center text-xs text-ink/30 mt-4">
+            Accepting bypasses the public application queue and grants instant ambassador access.
+          </p>
         </div>
       </div>
     </main>

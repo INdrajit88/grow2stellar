@@ -13,7 +13,11 @@ export const metadata = {
     description: "Web3-native ambassador rewards on Stellar.",
     type: "website",
   },
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
   themeColor: "#0f9f8f",
 };
 

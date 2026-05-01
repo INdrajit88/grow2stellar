@@ -1,92 +1,155 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUser, listCampaigns, listQuests, listSubmissions, approveSubmission, rejectSubmission } from "../../../lib/api";
+import {
+  getCurrentUser,
+  listCampaigns,
+  listQuests,
+  listSubmissions,
+  approveSubmission,
+  rejectSubmission,
+} from "../../../lib/api";
 
 export default function OrganizerQuests() {
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState([]); // Array of { campaign, quest, submission }
+  const [data, setData] = useState([]);
 
-  useEffect(() => {
-    loadGlobalSubmissions();
-  }, []);
+  useEffect(() => { loadGlobalSubmissions(); }, []);
 
   async function loadGlobalSubmissions() {
     setLoading(true);
     const token = window.localStorage.getItem("grow2stellar.token");
-    if (!token) return;
+    if (!token) return setLoading(false);
 
     try {
       const { user } = await getCurrentUser(token);
       const { campaigns } = await listCampaigns(token);
-      const myCampaigns = campaigns.filter(c => c.organizerId === user.id);
+      const mine = campaigns.filter((c) => c.organizerId === user.id);
 
-      const allData = [];
-      
-      for (const campaign of myCampaigns) {
+      const rows = [];
+      for (const campaign of mine) {
         const { quests } = await listQuests(token, campaign.id);
-        
         for (const quest of quests) {
-          const { submissions } = await listSubmissions(token, campaign.id, quest.id);
+          const { submissions } = await listSubmissions(token, quest.id);
           for (const sub of submissions) {
-             allData.push({ campaign, quest, submission: sub });
+            rows.push({ campaign, quest, submission: sub });
           }
         }
       }
-      
-      setData(allData.sort((a, b) => new Date(b.submission.createdAt) - new Date(a.submission.createdAt)));
-    } catch(err) {
+
+      setData(
+        rows.sort(
+          (a, b) =>
+            new Date(b.submission.createdAt) - new Date(a.submission.createdAt)
+        )
+      );
+    } catch (err) {
       console.error(err);
     }
     setLoading(false);
   }
 
-  async function handleApprove(cId, qId, sId) {
+  async function handleApprove(questId, submissionId) {
     const token = window.localStorage.getItem("grow2stellar.token");
-    await approveSubmission(token, cId, qId, sId);
+    await approveSubmission(token, questId, submissionId);
     loadGlobalSubmissions();
   }
 
-  async function handleReject(cId, qId, sId) {
+  async function handleReject(questId, submissionId) {
     const token = window.localStorage.getItem("grow2stellar.token");
-    await rejectSubmission(token, cId, qId, sId);
+    await rejectSubmission(token, questId, submissionId);
     loadGlobalSubmissions();
   }
 
-  const pending = data.filter(d => d.submission.status === "pending");
-  const reviewed = data.filter(d => d.submission.status !== "pending");
+  const pending  = data.filter((d) => d.submission.status === "pending");
+  const reviewed = data.filter((d) => d.submission.status !== "pending");
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-ink">Quests & Approvals</h1>
-      <p className="text-ink/70 mb-8 max-w-2xl">Review proof of work submitted by ambassadors across all your campaigns and trigger Soroban payouts.</p>
+    <div className="animate-fade-in">
+      <div className="mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-ink">Quests & Approvals</h1>
+        <p className="text-ink/50 mt-1 text-sm max-w-xl">
+          Review ambassador proof submissions and trigger Soroban payouts.
+        </p>
+      </div>
 
       {loading ? (
-        <p className="animate-pulse text-ink/70">Loading global submissions...</p>
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-24 rounded-xl bg-ink/5 animate-pulse" />
+          ))}
+        </div>
       ) : (
-        <div className="space-y-12">
-          
-          {/* Pending Submissions */}
+        <div className="space-y-10">
+          {/* Pending */}
           <section>
-            <h2 className="text-xl font-bold bg-mint text-white inline-block px-3 py-1 rounded-md mb-4">Requires Action: {pending.length}</h2>
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-lg font-bold text-ink">Needs Review</h2>
+              <span
+                className={`rounded-full text-xs font-bold px-2.5 py-0.5 ${
+                  pending.length > 0
+                    ? "bg-coral/10 text-coral"
+                    : "bg-ink/8 text-ink/40"
+                }`}
+              >
+                {pending.length}
+              </span>
+            </div>
+
             {pending.length === 0 ? (
-              <div className="p-6 bg-white border border-ink/10 rounded-lg text-ink/60">No pending submissions to review. You're all caught up!</div>
+              <div className="rounded-xl border border-ink/8 bg-white p-8 text-center">
+                <div className="text-2xl mb-2">🎉</div>
+                <p className="text-sm font-semibold text-ink/40">
+                  All caught up — no pending submissions.
+                </p>
+              </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid sm:grid-cols-2 gap-4">
                 {pending.map(({ campaign, quest, submission }) => (
-                  <div key={submission.id} className="bg-white border border-mint/30 shadow-sm rounded-lg p-5">
-                    <p className="text-xs font-bold text-mint uppercase">{campaign.title}</p>
-                    <h3 className="font-semibold text-lg">{quest.title} <span className="text-ink/50 ml-1 text-sm bg-cloud px-2 py-0.5 rounded">Reward: {quest.rewardAmount} XLM</span></h3>
-                    
-                    <div className="mt-4 border-t border-ink/10 pt-3 text-sm">
-                      <p className="font-semibold">Submitted Proof:</p>
-                      <a href={submission.proofUrl} target="_blank" className="text-mint underline break-all inline-block my-1">{submission.proofUrl}</a>
-                      {submission.notes && <p className="italic text-ink/70">"{submission.notes}"</p>}
+                  <div
+                    key={submission.id}
+                    className="rounded-xl border border-mint/20 bg-white p-5 shadow-sm"
+                  >
+                    <p className="text-xs font-bold uppercase tracking-wider text-mint mb-1">
+                      {campaign.title}
+                    </p>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-ink">{quest.title}</h3>
+                      <span className="text-xs font-bold bg-cloud text-ink/60 px-2 py-1 rounded-md border border-ink/8">
+                        {quest.rewardAmount} XLM
+                      </span>
                     </div>
 
-                    <div className="mt-5 flex gap-2">
-                      <button onClick={() => handleApprove(campaign.id, quest.id, submission.id)} className="flex-1 bg-ink text-white font-semibold py-2 rounded hover:bg-mint transition">Approve & Pay</button>
-                      <button onClick={() => handleReject(campaign.id, quest.id, submission.id)} className="flex-1 border border-coral text-coral font-semibold py-2 rounded hover:bg-coral hover:text-white transition">Reject Proof</button>
+                    <div className="rounded-lg bg-cloud border border-ink/8 p-3 mb-4">
+                      <p className="text-xs font-semibold text-ink/40 mb-1">Proof submitted</p>
+                      <a
+                        href={submission.proofUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-mint text-xs underline break-all"
+                      >
+                        {submission.proofUrl}
+                      </a>
+                      {submission.notes && (
+                        <p className="text-xs text-ink/50 mt-1.5 italic">
+                          "{submission.notes}"
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApprove(quest.id, submission.id)}
+                        className="flex-1 rounded-lg bg-ink text-white text-sm font-semibold py-2 hover:bg-mint transition"
+                      >
+                        Approve & Pay
+                      </button>
+                      <button
+                        onClick={() => handleReject(quest.id, submission.id)}
+                        className="flex-1 rounded-lg border border-coral/30 text-coral text-sm font-semibold py-2 hover:bg-coral hover:text-white hover:border-coral transition"
+                      >
+                        Reject
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -94,36 +157,65 @@ export default function OrganizerQuests() {
             )}
           </section>
 
-          {/* Past History */}
+          {/* History */}
           <section>
-            <h2 className="text-xl font-bold text-ink mb-4">Review History</h2>
-            <div className="w-full overflow-x-auto rounded-lg border border-ink/10 bg-white shadow-sm">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-cloud text-ink/70 border-b border-ink/10">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold uppercase">Campaign</th>
-                    <th className="px-4 py-3 font-semibold uppercase">Quest</th>
-                    <th className="px-4 py-3 font-semibold uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink/10">
-                  {reviewed.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-ink/60">No history found.</td></tr>}
-                  {reviewed.map(({ campaign, quest, submission }) => (
-                     <tr key={submission.id}>
-                       <td className="px-4 py-3 text-ink/80">{campaign.title}</td>
-                       <td className="px-4 py-3 font-semibold">{quest.title}</td>
-                       <td className="px-4 py-3">
-                         <span className={`px-2 py-1 text-xs font-bold rounded ${submission.status === 'approved' ? 'bg-mint/10 text-mint' : 'bg-coral/10 text-coral'}`}>
-                           {submission.status.toUpperCase()}
-                         </span>
-                       </td>
-                     </tr>
-                  ))}
-                </tbody>
-              </table>
+            <h2 className="text-lg font-bold text-ink mb-4">Review History</h2>
+            <div className="rounded-xl border border-ink/8 bg-white overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-cloud border-b border-ink/8">
+                    <tr>
+                      {["Campaign", "Quest", "Status"].map((h) => (
+                        <th
+                          key={h}
+                          className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-ink/40"
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-ink/8">
+                    {reviewed.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="px-4 py-8 text-center text-ink/35 text-sm"
+                        >
+                          No history yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      reviewed.map(({ campaign, quest, submission }) => (
+                        <tr
+                          key={submission.id}
+                          className="hover:bg-cloud/50 transition"
+                        >
+                          <td className="px-4 py-3 text-xs text-ink/60">
+                            {campaign.title}
+                          </td>
+                          <td className="px-4 py-3 text-xs font-semibold text-ink">
+                            {quest.title}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-block px-2 py-0.5 text-xs font-bold rounded-md ${
+                                submission.status === "approved"
+                                  ? "bg-mint/10 text-mint"
+                                  : "bg-coral/10 text-coral"
+                              }`}
+                            >
+                              {submission.status.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
-
         </div>
       )}
     </div>

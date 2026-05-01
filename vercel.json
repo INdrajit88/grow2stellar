@@ -4,10 +4,20 @@
   "outputDirectory": "frontend/.next",
   "framework": "nextjs",
   "installCommand": "npm install",
+  "functions": {
+    "backend/api/index.js": {
+      "runtime": "@vercel/node",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://grow2stellar.vercel.app/_/backend/api/:path*"
+      "destination": "/backend/api/index.js"
+    },
+    {
+      "source": "/health",
+      "destination": "/backend/api/index.js"
     }
   ],
   "headers": [

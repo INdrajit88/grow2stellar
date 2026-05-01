@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCurrentUser } from "../lib/api";
+import { getCurrentUser, requestWalletChallenge, verifyWalletChallenge } from "../lib/api";
 import {
   connectFreighterWallet,
   getFreighterNetwork,
@@ -83,15 +83,8 @@ export default function HomePage() {
       const address = await connectFreighterWallet();
       setWalletAddress(address);
 
-      const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
       setMessage("Fetching auth challenge…");
-      const r1 = await fetch(`${API}/auth/nonce`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: address }),
-      });
-      const d1 = await r1.json();
-      if (!r1.ok) throw new Error(d1.error?.message || "Failed to fetch nonce");
+      const d1 = await requestWalletChallenge(address);
 
       setMessage("Sign the challenge in Freighter…");
       const signed = await signChallengeTransaction({
@@ -101,13 +94,8 @@ export default function HomePage() {
       });
 
       setMessage("Verifying…");
-      const r2 = await fetch(`${API}/auth/verify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signedTransaction: signed, walletAddress: address }),
-      });
-      const d2 = await r2.json();
-      if (!r2.ok) throw new Error(d2.error?.message || "Verification failed");
+      const d2 = await verifyWalletChallenge({ walletAddress: address, signedTransaction: signed });
+      if (!d2.token) throw new Error("Verification failed");
 
       window.localStorage.setItem(TOKEN_KEY, d2.token);
       setUser(d2.user);

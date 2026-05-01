@@ -131,7 +131,7 @@ jobs:
       - name: Build Next.js app
         run: npm run build
         env:
-          NEXT_PUBLIC_API_URL: https://grow2stellar-api.onrender.com
+          NEXT_PUBLIC_API_URL: /api
 
   # ─────────────────────────────────────────────────────────────────────────────
   # 4. Deployment confirmation
@@ -147,6 +147,6 @@ jobs:
     steps:
       - name: Confirm deployment
         run: |
-          echo "✅ All CI checks passed."
-          echo "🚀 Vercel deploys automatically via GitHub integration."
-          echo "🌐 Live at: https://grow2stellar.vercel.app"
+          echo "All CI checks passed."
+          echo "Vercel deploys automatically via GitHub integration."
+          echo "Live at: https://grow2stellar.vercel.app"

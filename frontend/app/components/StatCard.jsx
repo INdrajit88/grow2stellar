@@ -1,28 +1,27 @@
-export default function StatCard({ title, value, subtitle, color = "mint", icon }) {
-  const colorMap = {
-    mint: "border-mint/20 bg-mint/5 text-mint",
-    coral: "border-coral/20 bg-coral/5 text-coral",
-    ink: "border-ink/10 bg-white text-ink",
-    gold: "border-gold/30 bg-gold/5 text-gold",
-  };
+const STYLES = {
+  mint:  { card: "border-mint/15 bg-white",  label: "text-mint",  value: "text-ink" },
+  coral: { card: "border-coral/15 bg-white", label: "text-coral", value: "text-ink" },
+  gold:  { card: "border-gold/20 bg-white",  label: "text-gold",  value: "text-ink" },
+  ink:   { card: "border-ink/10 bg-white",   label: "text-ink/50",value: "text-ink" },
+};
 
-  const textMap = {
-    mint: "text-mint",
-    coral: "text-coral",
-    ink: "text-ink/60",
-    gold: "text-gold",
-  };
+export default function StatCard({ title, value, subtitle, color = "mint", icon }) {
+  const s = STYLES[color] || STYLES.ink;
 
   return (
-    <div className={`flex flex-col justify-center rounded-lg border p-5 shadow-sm ${colorMap[color] || colorMap.ink}`}>
-      <div className="flex items-center gap-2 mb-1">
-        {icon && <span className="text-xl">{icon}</span>}
-        <p className={`text-sm font-semibold uppercase ${textMap[color] || textMap.ink}`}>
+    <div className={`rounded-xl border p-5 shadow-sm ${s.card}`}>
+      <div className="flex items-center justify-between mb-3">
+        <p className={`text-xs font-bold uppercase tracking-wider ${s.label}`}>
           {title}
         </p>
+        {icon && (
+          <span className={`text-lg ${s.label} opacity-60`}>{icon}</span>
+        )}
       </div>
-      <p className="text-3xl font-bold">{value}</p>
-      {subtitle && <p className="mt-1 text-xs opacity-70">{subtitle}</p>}
+      <p className={`text-3xl font-bold ${s.value}`}>{value}</p>
+      {subtitle && (
+        <p className="mt-1.5 text-xs text-ink/40">{subtitle}</p>
+      )}
     </div>
   );
 }

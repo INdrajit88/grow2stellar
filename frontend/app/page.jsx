@@ -8,32 +8,64 @@ import {
   signChallengeTransaction,
 } from "../lib/freighter";
 import Link from "next/link";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 
-const storedTokenKey = "grow2stellar.token";
+const TOKEN_KEY = "grow2stellar.token";
+
+const HOW_IT_WORKS = [
+  {
+    step: "01",
+    title: "Connect your wallet",
+    body: "Sign in with Freighter — no email, no password. Your Stellar address is your identity.",
+    color: "mint",
+  },
+  {
+    step: "02",
+    title: "Pick a campaign",
+    body: "Browse public bounties on the marketplace or get invited to private campaigns by organizers.",
+    color: "gold",
+  },
+  {
+    step: "03",
+    title: "Complete quests",
+    body: "Submit proof of your work — tweets, blog posts, referral clicks. Organizers review on-chain.",
+    color: "coral",
+  },
+  {
+    step: "04",
+    title: "Get paid in XLM + G2S",
+    body: "Approved submissions trigger an automatic Soroban payout. XLM lands in your wallet instantly.",
+    color: "mint",
+  },
+];
+
+const STATS = [
+  { label: "Campaigns live", value: "12+" },
+  { label: "Ambassadors active", value: "340+" },
+  { label: "XLM distributed", value: "18,500" },
+  { label: "Avg. payout time", value: "< 5s" },
+];
 
 export default function HomePage() {
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
   const [walletAddress, setWalletAddress] = useState("");
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState("");
 
   useEffect(() => {
-    const token = window.localStorage.getItem(storedTokenKey);
+    const token = window.localStorage.getItem(TOKEN_KEY);
     if (!token) return;
-
-    setToken(token);
     setStatus("loading");
     getCurrentUser(token)
-      .then(({ user: currentUser }) => {
-        setUser(currentUser);
-        setWalletAddress(currentUser.walletAddress);
+      .then(({ user: u }) => {
+        setUser(u);
+        setWalletAddress(u.walletAddress);
         setStatus("authenticated");
-        setMessage("Wallet session restored. Please select your workspace below.");
+        setMessage("Session restored — choose your workspace below.");
       })
       .catch(() => {
-        window.localStorage.removeItem(storedTokenKey);
-        setToken("");
+        window.localStorage.removeItem(TOKEN_KEY);
         setStatus("idle");
       });
   }, []);
@@ -41,179 +73,305 @@ export default function HomePage() {
   async function handleConnect() {
     try {
       setStatus("loading");
-      setMessage("Checking network...");
-      const networkDetails = await getFreighterNetwork();
-      if (!networkDetails || !networkDetails.network.toUpperCase().includes("TESTNET")) {
-        throw new Error("Please switch Freighter to TESTNET.");
+      setMessage("Checking network…");
+      const net = await getFreighterNetwork();
+      if (!net?.network?.toUpperCase().includes("TESTNET")) {
+        throw new Error("Switch Freighter to Stellar Testnet first.");
       }
 
-      setMessage("Requesting address...");
+      setMessage("Requesting address…");
       const address = await connectFreighterWallet();
       setWalletAddress(address);
 
-      setMessage("Requesting authentication challenge...");
-      const res1 = await fetch("http://localhost:4000/api/auth/nonce", {
+      setMessage("Fetching auth challenge…");
+      const r1 = await fetch("http://localhost:4000/api/auth/nonce", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ walletAddress: address }),
       });
-      const data1 = await res1.json();
-      if (!res1.ok) throw new Error(data1.error?.message || "Failed to fetch nonce");
+      const d1 = await r1.json();
+      if (!r1.ok) throw new Error(d1.error?.message || "Failed to fetch nonce");
 
-      setMessage("Please sign the authentication challenge in Freighter...");
-      const signedTransaction = await signChallengeTransaction({
-        transaction: data1.transaction,
+      setMessage("Sign the challenge in Freighter…");
+      const signed = await signChallengeTransaction({
+        transaction: d1.transaction,
         address,
-        networkPassphrase: networkDetails.networkPassphrase,
+        networkPassphrase: net.networkPassphrase,
       });
 
-      setMessage("Verifying signature...");
-      const res2 = await fetch("http://localhost:4000/api/auth/verify", {
+      setMessage("Verifying…");
+      const r2 = await fetch("http://localhost:4000/api/auth/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signedTransaction, walletAddress: address }),
+        body: JSON.stringify({ signedTransaction: signed, walletAddress: address }),
       });
-      const data2 = await res2.json();
-      if (!res2.ok) throw new Error(data2.error?.message || "Verification failed");
+      const d2 = await r2.json();
+      if (!r2.ok) throw new Error(d2.error?.message || "Verification failed");
 
-      window.localStorage.setItem(storedTokenKey, data2.token);
-      setToken(data2.token);
-      setUser(data2.user);
+      window.localStorage.setItem(TOKEN_KEY, d2.token);
+      setUser(d2.user);
       setStatus("authenticated");
-      setMessage("Authentication successful! Please select your workspace below.");
+      setMessage("Authenticated — choose your workspace below.");
     } catch (err) {
-      console.error(err);
       setStatus("error");
-      setMessage(err.message || "An unknown error occurred.");
+      setMessage(err.message || "Something went wrong.");
     }
   }
 
   function handleDisconnect() {
-    window.localStorage.removeItem(storedTokenKey);
+    window.localStorage.removeItem(TOKEN_KEY);
     setUser(null);
-    setToken("");
     setWalletAddress("");
     setStatus("idle");
-    setMessage("Disconnected successfully.");
+    setMessage("");
   }
 
   return (
-    <main className="min-h-screen bg-cloud text-ink font-sans">
-      <header className="border-b border-ink/10 bg-white">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between p-5 md:px-8 md:py-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded bg-mint text-white">
-              <span className="font-bold">G</span>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-ink">
-              Grow2Stellar
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <Link href="/marketplace" className="text-sm font-semibold text-mint hover:underline">
-              Explore Marketplace
-            </Link>
-            {user && (
-              <button onClick={handleDisconnect} className="text-sm font-semibold text-coral border border-coral px-3 py-1.5 rounded hover:bg-coral hover:text-white transition">
-                Logout
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="flex flex-col min-h-screen bg-cloud">
+      <Header user={user} onDisconnect={handleDisconnect} />
 
-      <section className="mx-auto grid w-full max-w-6xl gap-12 px-5 py-12 md:grid-cols-2 md:px-8 md:py-20 lg:py-24">
-        <div className="flex flex-col justify-center">
-          <span className="mb-4 inline-block w-fit rounded-full bg-mint/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-mint border-mint/20 border">
-            Web3 Growth Platform
-          </span>
+      <main className="flex-1">
+        {/* ── Hero ─────────────────────────────────────────────────────────── */}
+        <section className="relative overflow-hidden bg-white">
+          {/* Subtle grid background */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-[0.03]"
+            style={{
+              backgroundImage:
+                "linear-gradient(#16181d 1px, transparent 1px), linear-gradient(90deg, #16181d 1px, transparent 1px)",
+              backgroundSize: "40px 40px",
+            }}
+          />
+          {/* Gradient blob */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-32 -right-32 w-[600px] h-[600px] rounded-full opacity-10"
+            style={{
+              background:
+                "radial-gradient(circle, #0f9f8f 0%, transparent 70%)",
+            }}
+          />
 
-          <div className="space-y-4">
-            <h1 className="max-w-3xl text-4xl font-semibold leading-tight md:text-5xl">
-              Connect your Stellar wallet to start earning from real growth.
-            </h1>
-            <p className="max-w-2xl text-lg leading-8 text-ink/70">
-              One identity to rule them all. Choose your path: organize campaigns and pay bounties, or become a partner to hunt quests for XLM.
-            </p>
-          </div>
-        </div>
+          <div className="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-32">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              {/* Left: copy */}
+              <div className="animate-fade-in">
+                <div className="inline-flex items-center gap-2 rounded-full border border-mint/25 bg-mint/8 px-3 py-1 text-xs font-semibold text-mint mb-6">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-mint animate-pulse" />
+                  Live on Stellar Testnet
+                </div>
 
-        <div className="rounded-lg border border-ink/10 bg-white p-6 shadow-sm flex flex-col justify-center">
-          <div className="space-y-4">
-            <div>
-              <label className="mb-2 block text-sm font-semibold">Decentralized Login</label>
-              <input
-                readOnly
-                value={walletAddress || "No Active Wallet Connection"}
-                className="w-full rounded-md border border-ink/15 bg-cloud px-3 py-3 text-sm text-ink/80 font-mono"
-              />
-            </div>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-ink leading-[1.1] tracking-tight mb-6">
+                  Earn XLM for{" "}
+                  <span className="text-mint">real growth</span>{" "}
+                  work.
+                </h1>
 
-            {user ? (
-              <div className="rounded-md border border-mint/30 bg-mint/10 p-4 text-sm">
-                <p className="font-semibold text-mint">Identity Verified</p>
-                <p className="mt-1 break-all text-ink/70">Your Freighter wallet session is securely established.</p>
+                <p className="text-lg text-ink/60 leading-relaxed mb-8 max-w-lg">
+                  Grow2Stellar connects brands with ambassadors through
+                  Soroban smart contracts. Submit proof, get paid
+                  automatically — no invoices, no delays.
+                </p>
+
+                <div className="flex flex-col xs:flex-row gap-3">
+                  <Link
+                    href="/marketplace"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-mint px-6 py-3 text-sm font-semibold text-white hover:bg-mint/90 transition shadow-sm shadow-mint/20"
+                  >
+                    Browse Campaigns
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </Link>
+                  <a
+                    href="https://github.com/INdrajit88/grow2stellar"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-ink/15 bg-white px-6 py-3 text-sm font-semibold text-ink hover:bg-cloud transition"
+                  >
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                      <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                    </svg>
+                    View on GitHub
+                  </a>
+                </div>
               </div>
-            ) : (
-              <div className="rounded-md border border-ink/10 bg-cloud p-4 text-sm text-ink/70">
-                You must sign an authentication challenge to proceed into a workspace.
+
+              {/* Right: wallet connect card */}
+              <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
+                <div className="rounded-2xl border border-ink/10 bg-white shadow-xl shadow-ink/5 p-6 sm:p-8">
+                  <div className="mb-6">
+                    <h2 className="text-lg font-bold text-ink mb-1">
+                      {user ? "Wallet connected" : "Connect your wallet"}
+                    </h2>
+                    <p className="text-sm text-ink/50">
+                      {user
+                        ? "Your Stellar identity is verified on-chain."
+                        : "Sign a challenge with Freighter to authenticate."}
+                    </p>
+                  </div>
+
+                  {/* Address display */}
+                  <div className="mb-4">
+                    <label className="block text-xs font-semibold uppercase tracking-wider text-ink/40 mb-2">
+                      Stellar Address
+                    </label>
+                    <div className="flex items-center gap-2 rounded-lg border border-ink/10 bg-cloud px-3 py-2.5">
+                      <div
+                        className={`w-2 h-2 rounded-full shrink-0 ${
+                          user ? "bg-mint animate-pulse-glow" : "bg-ink/20"
+                        }`}
+                      />
+                      <span className="text-xs font-mono text-ink/60 truncate">
+                        {walletAddress || "No wallet connected"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Status message */}
+                  {message && (
+                    <div
+                      className={`mb-4 rounded-lg px-3 py-2.5 text-sm ${
+                        status === "error"
+                          ? "bg-coral/8 border border-coral/20 text-coral"
+                          : status === "authenticated"
+                          ? "bg-mint/8 border border-mint/20 text-mint"
+                          : "bg-cloud border border-ink/10 text-ink/60"
+                      }`}
+                    >
+                      {message}
+                    </div>
+                  )}
+
+                  {/* Action */}
+                  {!user ? (
+                    <button
+                      onClick={handleConnect}
+                      disabled={status === "loading"}
+                      className="w-full rounded-lg bg-ink py-3 text-sm font-semibold text-white hover:bg-mint transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {status === "loading" ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          Connecting…
+                        </span>
+                      ) : (
+                        "Connect Freighter Wallet"
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <Link
+                        href="/organizer/dashboard"
+                        className="flex items-center justify-between w-full rounded-lg border border-mint/20 bg-mint/5 px-4 py-3 text-sm font-semibold text-mint hover:bg-mint hover:text-white transition"
+                      >
+                        <span>Organizer Portal</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                      <Link
+                        href="/ambassador/dashboard"
+                        className="flex items-center justify-between w-full rounded-lg border border-gold/20 bg-gold/5 px-4 py-3 text-sm font-semibold text-gold hover:bg-gold hover:text-white transition"
+                      >
+                        <span>Ambassador Hub</span>
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    </div>
+                  )}
+
+                  <p className="mt-4 text-center text-xs text-ink/30">
+                    Requires Freighter browser extension · Stellar Testnet
+                  </p>
+                </div>
               </div>
-            )}
-
-            {!user && (
-              <button
-                type="button"
-                onClick={handleConnect}
-                disabled={status === "loading"}
-                className="w-full rounded-md bg-ink px-5 py-3 font-semibold text-white transition hover:bg-mint disabled:cursor-not-allowed disabled:bg-ink/45"
-              >
-                {status === "loading" ? "Validating Signature..." : "Connect Freighter Wallet"}
-              </button>
-            )}
-
-            {message && (
-              <p className={`text-sm ${status === "error" ? "text-coral" : "text-ink/70"}`}>
-                {message}
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {user && (
-        <section className="mx-auto w-full max-w-6xl px-5 pb-20 md:px-8 border-t border-ink/10 pt-12 animate-fade-in">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold">Select Workspace</h2>
-            <p className="text-ink/70 mt-2">Enter the dashboard corresponding to your role to continue.</p>
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            
-            {/* Organizer Portal */}
-            <div className="group rounded-xl border border-ink/10 bg-white p-6 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between h-full">
-              <div>
-                <h2 className="text-xl font-bold bg-mint text-white inline-block px-3 py-1 rounded-md mb-3">Organizer / Admin</h2>
-                <p className="text-ink/70 mb-5 text-sm leading-relaxed">Access the creator studio. Launch new campaigns, manage structural quests, review proof submissions, and approve instant Soroban payouts to ambassadors.</p>
-              </div>
-              <Link href="/organizer/dashboard" className="block w-full text-center rounded bg-ink py-3 text-sm font-semibold text-white group-hover:bg-mint transition">
-                Enter Organizer Portal &rarr;
-              </Link>
             </div>
-
-            {/* Ambassador Portal */}
-            <div className="group rounded-xl border border-ink/10 bg-white p-6 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between h-full">
-              <div>
-                <h2 className="text-xl font-bold bg-gold/90 text-white inline-block px-3 py-1 rounded-md mb-3">Partner / Ambassador</h2>
-                <p className="text-ink/70 mb-5 text-sm leading-relaxed">Access the hunter's lodge. Discover available bounties, submit proof of your marketing and promotional work, and watch your XLM earnings grow.</p>
-              </div>
-              <Link href="/ambassador/dashboard" className="block w-full text-center rounded bg-ink py-3 text-sm font-semibold text-white group-hover:bg-gold transition">
-                Enter Partner Portal &rarr;
-              </Link>
-            </div>
-            
           </div>
         </section>
-      )}
-    </main>
+
+        {/* ── Stats bar ────────────────────────────────────────────────────── */}
+        <section className="border-y border-ink/8 bg-ink">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-0 sm:divide-x sm:divide-white/10">
+              {STATS.map((s) => (
+                <div key={s.label} className="text-center sm:px-6">
+                  <div className="text-2xl sm:text-3xl font-bold text-white">{s.value}</div>
+                  <div className="text-xs text-white/40 mt-1 font-medium">{s.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── How it works ─────────────────────────────────────────────────── */}
+        <section id="how-it-works" className="py-16 sm:py-24">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-bold text-ink mb-4">
+                How it works
+              </h2>
+              <p className="text-ink/50 max-w-xl mx-auto">
+                Four steps from wallet connect to XLM in your account.
+              </p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {HOW_IT_WORKS.map((item) => (
+                <div
+                  key={item.step}
+                  className="relative rounded-xl border border-ink/8 bg-white p-6 hover:shadow-md transition"
+                >
+                  <div className="text-4xl font-black text-ink/5 absolute top-4 right-4 select-none">
+                    {item.step}
+                  </div>
+                  <div
+                    className={`inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 text-white font-bold text-sm ${
+                      item.color === "mint"
+                        ? "bg-mint"
+                        : item.color === "gold"
+                        ? "bg-gold"
+                        : "bg-coral"
+                    }`}
+                  >
+                    {item.step}
+                  </div>
+                  <h3 className="font-bold text-ink mb-2">{item.title}</h3>
+                  <p className="text-sm text-ink/55 leading-relaxed">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── CTA ──────────────────────────────────────────────────────────── */}
+        <section className="py-16 sm:py-20 bg-mint">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+              Ready to start earning?
+            </h2>
+            <p className="text-white/70 mb-8 text-lg">
+              Browse open campaigns and apply as an ambassador today.
+            </p>
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-2 rounded-lg bg-white text-mint font-bold px-8 py-3.5 text-sm hover:bg-cloud transition shadow-lg shadow-mint/30"
+            >
+              Explore the Marketplace
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
   );
 }

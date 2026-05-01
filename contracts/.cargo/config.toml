@@ -1,0 +1,9 @@
+# Default build target for Soroban contracts
+# This makes `cargo build --release` use the correct Soroban WASM target
+# without needing to specify --target every time.
+[build]
+target = "wasm32v1-none"
+
+# Allow the soroban-sdk macro cfg warnings without failing the build
+[target.'cfg(all())']
+rustflags = []

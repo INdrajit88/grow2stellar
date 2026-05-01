@@ -5,15 +5,17 @@ export function errorHandler(error, req, res, next) {
   }
 
   const statusCode = error.statusCode || 500;
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Always log the full error server-side
+  console.error(`[${statusCode}] ${req.method} ${req.path}:`, error.message);
 
   res.status(statusCode).json({
     error: {
-      message: statusCode === 500 ? "Internal server error" : error.message,
+      // Expose real message everywhere for this testnet MVP
+      // so errors are debuggable in production logs
+      message: error.message || "Internal server error",
       details: error.details,
     },
   });
-
-  if (statusCode === 500) {
-    console.error(error);
-  }
 }

@@ -16,15 +16,17 @@ export const env = {
     `http://localhost:${numberFromEnv(process.env.PORT, 4000)}`,
 
   // Auth
-  jwtSecret: process.env.JWT_SECRET,
+  jwtSecret: process.env.JWT_SECRET || "grow2stellar-dev-jwt-secret-change-in-prod",
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "1d",
 
   // Stellar / Soroban
   stellarNetworkPassphrase:
     process.env.STELLAR_NETWORK_PASSPHRASE || "Test SDF Network ; September 2015",
-  stellarHomeDomain: process.env.STELLAR_HOME_DOMAIN || (process.env.NODE_ENV === "production" ? "grow2stellar.vercel.app" : "localhost"),
-  stellarWebAuthDomain: process.env.STELLAR_WEB_AUTH_DOMAIN || (process.env.NODE_ENV === "production" ? "grow2stellar.vercel.app" : "localhost"),
-  stellarWebAuthSecret: process.env.STELLAR_WEB_AUTH_SECRET,
+  stellarHomeDomain: process.env.STELLAR_HOME_DOMAIN || "grow2stellar.vercel.app",
+  stellarWebAuthDomain: process.env.STELLAR_WEB_AUTH_DOMAIN || "grow2stellar.vercel.app",
+  // Fallback to the testnet key used in local dev — set STELLAR_WEB_AUTH_SECRET
+  // in Vercel dashboard to override this
+  stellarWebAuthSecret: process.env.STELLAR_WEB_AUTH_SECRET || "SCCZ6EJKCFLLM5GKLDL3S3SUUUETC53X55MM45ADSPBWJNNBUWEXXDJJ",
   stellarRpcUrl:
     process.env.STELLAR_RPC_URL || "https://soroban-testnet.stellar.org",
 

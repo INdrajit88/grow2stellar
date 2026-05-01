@@ -22,8 +22,8 @@ export const env = {
   // Stellar / Soroban
   stellarNetworkPassphrase:
     process.env.STELLAR_NETWORK_PASSPHRASE || "Test SDF Network ; September 2015",
-  stellarHomeDomain: process.env.STELLAR_HOME_DOMAIN || "localhost",
-  stellarWebAuthDomain: process.env.STELLAR_WEB_AUTH_DOMAIN || "localhost",
+  stellarHomeDomain: process.env.STELLAR_HOME_DOMAIN || (process.env.NODE_ENV === "production" ? "grow2stellar.vercel.app" : "localhost"),
+  stellarWebAuthDomain: process.env.STELLAR_WEB_AUTH_DOMAIN || (process.env.NODE_ENV === "production" ? "grow2stellar.vercel.app" : "localhost"),
   stellarWebAuthSecret: process.env.STELLAR_WEB_AUTH_SECRET,
   stellarRpcUrl:
     process.env.STELLAR_RPC_URL || "https://soroban-testnet.stellar.org",
@@ -49,6 +49,8 @@ export function assertRequiredEnv() {
   if (!env.stellarWebAuthSecret) missing.push("STELLAR_WEB_AUTH_SECRET");
 
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+    // In production warn but don't crash — Vercel env vars may be set
+    // via the dashboard rather than a .env file
+    console.warn(`[warn] Missing env vars: ${missing.join(", ")} — some features may not work`);
   }
 }

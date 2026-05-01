@@ -1,52 +1,33 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { env } from "../config/env.js";
+/**
+ * In-memory store — works in both local dev and Vercel serverless.
+ *
+ * On local dev the process stays alive so state persists across requests.
+ * On Vercel the function may be cold-started, so state resets — acceptable
+ * for a testnet MVP demo. For production persistence, swap this for a
+ * database (e.g. PlanetScale, Supabase, or Upstash Redis).
+ */
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const backendRoot = path.resolve(__dirname, "../..");
-const dataFilePath = path.resolve(backendRoot, env.dataFile);
-
-const initialState = {
+const initialState = () => ({
   users: [],
   campaigns: [],
   ambassadors: [],
   referralClicks: [],
   quests: [],
   submissions: [],
-};
+});
 
-async function ensureDataDirectory() {
-  await mkdir(path.dirname(dataFilePath), { recursive: true });
-}
-
-async function readState() {
-  try {
-    const raw = await readFile(dataFilePath, "utf8");
-    return { ...initialState, ...JSON.parse(raw) };
-  } catch (error) {
-    if (error.code === "ENOENT") {
-      return structuredClone(initialState);
-    }
-    throw error;
-  }
-}
-
-async function writeState(state) {
-  await ensureDataDirectory();
-  const tempPath = `${dataFilePath}.tmp`;
-  await writeFile(tempPath, `${JSON.stringify(state, null, 2)}\n`);
-  await rename(tempPath, dataFilePath);
-}
+// Module-level singleton — survives across requests in the same process
+let _state = initialState();
 
 export async function getState() {
-  return readState();
+  return structuredClone(_state);
 }
 
 export async function updateState(mutator) {
-  const state = await readState();
-  const result = await mutator(state);
-  await writeState(state);
+  // Clone so the mutator works on a draft
+  const draft = structuredClone(_state);
+  const result = await mutator(draft);
+  // Commit the draft back
+  _state = draft;
   return result;
 }

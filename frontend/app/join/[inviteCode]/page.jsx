@@ -46,7 +46,9 @@ export default function JoinCampaignPage() {
 
         const address = await connectFreighterWallet();
 
-        const r1 = await fetch("http://localhost:4000/api/auth/nonce", {
+        const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+        const r1 = await fetch(`${API}/auth/nonce`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ walletAddress: address }),
@@ -60,7 +62,7 @@ export default function JoinCampaignPage() {
           networkPassphrase: net.networkPassphrase,
         });
 
-        const r2 = await fetch("http://localhost:4000/api/auth/verify", {
+        const r2 = await fetch(`${API}/auth/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ signedTransaction: signed, walletAddress: address }),
